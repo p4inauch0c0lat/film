@@ -138,61 +138,19 @@ const buildAnimePaginationRow = (page, totalPages) =>
       .setDisabled(page >= totalPages)
   );
 
-const buildFilmSelectMenu = (films) => {
-  if (!films.length) {
+const buildItemButtonsRow = (items, prefix) => {
+  if (!items.length) {
     return null;
   }
 
-  const menu = new StringSelectMenuBuilder()
-    .setCustomId('film_select')
-    .setPlaceholder('Clique sur un film pour voir les détails')
-    .addOptions(
-      films.map((film) => ({
-        label: film.title,
-        value: film.id,
-        emoji: film.emoji
-      }))
-    );
-
-  return new ActionRowBuilder().addComponents(menu);
-};
-
-const buildSeriesSelectMenu = (series) => {
-  if (!series.length) {
-    return null;
-  }
-
-  const menu = new StringSelectMenuBuilder()
-    .setCustomId('series_select')
-    .setPlaceholder('Clique sur une série pour voir les détails')
-    .addOptions(
-      series.map((item) => ({
-        label: item.title,
-        value: item.id,
-        emoji: item.emoji
-      }))
-    );
-
-  return new ActionRowBuilder().addComponents(menu);
-};
-
-const buildAnimeSelectMenu = (animes) => {
-  if (!animes.length) {
-    return null;
-  }
-
-  const menu = new StringSelectMenuBuilder()
-    .setCustomId('anime_select')
-    .setPlaceholder('Clique sur un anime pour voir les détails')
-    .addOptions(
-      animes.map((item) => ({
-        label: item.title,
-        value: item.id,
-        emoji: item.emoji
-      }))
-    );
-
-  return new ActionRowBuilder().addComponents(menu);
+  return new ActionRowBuilder().addComponents(
+    items.map((item) =>
+      new ButtonBuilder()
+        .setCustomId(`${prefix}:${item.id}`)
+        .setEmoji(item.emoji)
+        .setStyle(ButtonStyle.Secondary)
+    )
+  );
 };
 
 const buildFilmPagePayload = (selectedCategories, page) => {
@@ -201,7 +159,7 @@ const buildFilmPagePayload = (selectedCategories, page) => {
   const safePage = Math.min(Math.max(page, 1), totalPages);
   const startIndex = (safePage - 1) * FILMS_PER_PAGE;
   const pagedFilms = films.slice(startIndex, startIndex + FILMS_PER_PAGE);
-  const selectionRow = buildFilmSelectMenu(pagedFilms);
+  const selectionRow = buildItemButtonsRow(pagedFilms, 'film_item');
 
   return {
     embed: buildFilmListEmbed({
@@ -220,7 +178,7 @@ const buildSeriesPagePayload = (selectedCategories, page) => {
   const safePage = Math.min(Math.max(page, 1), totalPages);
   const startIndex = (safePage - 1) * SERIES_PER_PAGE;
   const pagedSeries = series.slice(startIndex, startIndex + SERIES_PER_PAGE);
-  const selectionRow = buildSeriesSelectMenu(pagedSeries);
+  const selectionRow = buildItemButtonsRow(pagedSeries, 'series_item');
 
   return {
     embed: buildSeriesListEmbed({
@@ -239,7 +197,7 @@ const buildAnimePagePayload = (selectedCategories, page) => {
   const safePage = Math.min(Math.max(page, 1), totalPages);
   const startIndex = (safePage - 1) * ANIMES_PER_PAGE;
   const pagedAnimes = animes.slice(startIndex, startIndex + ANIMES_PER_PAGE);
-  const selectionRow = buildAnimeSelectMenu(pagedAnimes);
+  const selectionRow = buildItemButtonsRow(pagedAnimes, 'anime_item');
 
   return {
     embed: buildAnimeListEmbed({
@@ -337,6 +295,54 @@ client.on('interactionCreate', async (interaction) => {
 
       await interaction.update({ embeds: [nextEmbed], components });
     }
+
+    if (interaction.customId.startsWith('film_item:')) {
+      const selectedFilmId = interaction.customId.split(':')[1];
+      const film = getFilmById(selectedFilmId);
+
+      if (!film) {
+        await interaction.reply({
+          content: 'Impossible de trouver ce film.',
+          ephemeral: true
+        });
+        return;
+      }
+
+      const detailEmbed = buildFilmDetailEmbed(film);
+      await interaction.reply({ embeds: [detailEmbed] });
+    }
+
+    if (interaction.customId.startsWith('series_item:')) {
+      const selectedSeriesId = interaction.customId.split(':')[1];
+      const series = getSeriesById(selectedSeriesId);
+
+      if (!series) {
+        await interaction.reply({
+          content: 'Impossible de trouver cette série.',
+          ephemeral: true
+        });
+        return;
+      }
+
+      const detailEmbed = buildFilmDetailEmbed(series);
+      await interaction.reply({ embeds: [detailEmbed] });
+    }
+
+    if (interaction.customId.startsWith('anime_item:')) {
+      const selectedAnimeId = interaction.customId.split(':')[1];
+      const anime = getAnimeById(selectedAnimeId);
+
+      if (!anime) {
+        await interaction.reply({
+          content: 'Impossible de trouver cet anime.',
+          ephemeral: true
+        });
+        return;
+      }
+
+      const detailEmbed = buildFilmDetailEmbed(anime);
+      await interaction.reply({ embeds: [detailEmbed] });
+    }
   }
 
   if (interaction.isStringSelectMenu() && interaction.customId === 'film_categories') {
@@ -372,53 +378,6 @@ client.on('interactionCreate', async (interaction) => {
     });
   }
 
-  if (interaction.isStringSelectMenu() && interaction.customId === 'film_select') {
-    const selectedFilmId = interaction.values[0];
-    const film = getFilmById(selectedFilmId);
-
-    if (!film) {
-      await interaction.reply({
-        content: 'Impossible de trouver ce film.',
-        ephemeral: true
-      });
-      return;
-    }
-
-    const detailEmbed = buildFilmDetailEmbed(film);
-    await interaction.reply({ embeds: [detailEmbed] });
-  }
-
-  if (interaction.isStringSelectMenu() && interaction.customId === 'series_select') {
-    const selectedSeriesId = interaction.values[0];
-    const series = getSeriesById(selectedSeriesId);
-
-    if (!series) {
-      await interaction.reply({
-        content: 'Impossible de trouver cette série.',
-        ephemeral: true
-      });
-      return;
-    }
-
-    const detailEmbed = buildFilmDetailEmbed(series);
-    await interaction.reply({ embeds: [detailEmbed] });
-  }
-
-  if (interaction.isStringSelectMenu() && interaction.customId === 'anime_select') {
-    const selectedAnimeId = interaction.values[0];
-    const anime = getAnimeById(selectedAnimeId);
-
-    if (!anime) {
-      await interaction.reply({
-        content: 'Impossible de trouver cet anime.',
-        ephemeral: true
-      });
-      return;
-    }
-
-    const detailEmbed = buildFilmDetailEmbed(anime);
-    await interaction.reply({ embeds: [detailEmbed] });
-  }
 });
 
 client.login(token);
