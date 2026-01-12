@@ -7,7 +7,7 @@ import {
   StringSelectMenuBuilder
 } from 'discord.js';
 import { buildCatalogueEmbed } from './embeds/catalogue.js';
-import { buildFilmDetailEmbed } from './embeds/filmDetails.js';
+import { buildFilmDetailEmbed, buildSeasonDetailEmbed } from './embeds/filmDetails.js';
 import { buildFilmListEmbed, parsePageFromFooter as parseFilmPageFromFooter } from './embeds/films.js';
 import { buildAnimeListEmbed, parsePageFromFooter as parseAnimePageFromFooter } from './embeds/animes.js';
 import { buildSeriesListEmbed, parsePageFromFooter as parseSeriesPageFromFooter } from './embeds/series.js';
@@ -182,6 +182,14 @@ const buildSortMenu = (currentSort, customId, placeholder) => {
 
   return new ActionRowBuilder().addComponents(menu);
 };
+
+const buildReceiveDmButton = (customId) =>
+  new ActionRowBuilder().addComponents(
+    new ButtonBuilder()
+      .setCustomId(customId)
+      .setLabel('Recevoir en MP')
+      .setStyle(ButtonStyle.Primary)
+  );
 
 const parseDate = (value) => {
   if (!value) {
@@ -411,8 +419,11 @@ client.on('interactionCreate', async (interaction) => {
         return;
       }
 
-      const detailEmbed = buildFilmDetailEmbed(series);
-      await interaction.reply({ embeds: [detailEmbed] });
+      const detailEmbed = buildSeasonDetailEmbed(series);
+      await interaction.reply({
+        embeds: [detailEmbed],
+        components: [buildReceiveDmButton(`series_dm:${series.id}`)]
+      });
     }
 
     if (interaction.customId.startsWith('anime_item:')) {
@@ -427,8 +438,67 @@ client.on('interactionCreate', async (interaction) => {
         return;
       }
 
-      const detailEmbed = buildFilmDetailEmbed(anime);
-      await interaction.reply({ embeds: [detailEmbed] });
+      const detailEmbed = buildSeasonDetailEmbed(anime);
+      await interaction.reply({
+        embeds: [detailEmbed],
+        components: [buildReceiveDmButton(`anime_dm:${anime.id}`)]
+      });
+    }
+
+    if (interaction.customId.startsWith('series_dm:')) {
+      const selectedSeriesId = interaction.customId.split(':')[1];
+      const series = getSeriesById(selectedSeriesId);
+
+      if (!series) {
+        await interaction.reply({
+          content: 'Impossible de trouver cette série.',
+          ephemeral: true
+        });
+        return;
+      }
+
+      const episodes = series.episodes?.length
+        ? series.episodes
+            .map((episode) => `Épisode ${episode.number} — ${episode.title}: ${episode.url}`)
+            .join('\n')
+        : 'Aucun épisode disponible.';
+
+      await interaction.user.send({
+        content: `🎬 **${series.title} — Saison ${series.season}**\n${episodes}`
+      });
+
+      await interaction.reply({
+        content: 'Je t’ai envoyé la saison en MP.',
+        ephemeral: true
+      });
+    }
+
+    if (interaction.customId.startsWith('anime_dm:')) {
+      const selectedAnimeId = interaction.customId.split(':')[1];
+      const anime = getAnimeById(selectedAnimeId);
+
+      if (!anime) {
+        await interaction.reply({
+          content: 'Impossible de trouver cet anime.',
+          ephemeral: true
+        });
+        return;
+      }
+
+      const episodes = anime.episodes?.length
+        ? anime.episodes
+            .map((episode) => `Épisode ${episode.number} — ${episode.title}: ${episode.url}`)
+            .join('\n')
+        : 'Aucun épisode disponible.';
+
+      await interaction.user.send({
+        content: `🎬 **${anime.title} — Saison ${anime.season}**\n${episodes}`
+      });
+
+      await interaction.reply({
+        content: 'Je t’ai envoyé la saison en MP.',
+        ephemeral: true
+      });
     }
   }
 
