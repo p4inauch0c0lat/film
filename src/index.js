@@ -29,6 +29,11 @@ const client = new Client({
 const FILMS_PER_PAGE = 6;
 const SERIES_PER_PAGE = 6;
 const ANIMES_PER_PAGE = 6;
+const SORT_OPTIONS = {
+  recent: "Date d'ajout",
+  alpha: 'A-Z',
+  release: 'Date de sortie'
+};
 
 const buildCatalogueButtons = () =>
   new ActionRowBuilder().addComponents(
@@ -138,75 +143,133 @@ const buildAnimePaginationRow = (page, totalPages) =>
       .setDisabled(page >= totalPages)
   );
 
-const buildItemButtonsRow = (items, prefix) => {
+const buildItemButtonsRows = (items, prefix) => {
   if (!items.length) {
-    return null;
+    return [];
   }
 
-  return new ActionRowBuilder().addComponents(
-    items.map((item) =>
-      new ButtonBuilder()
-        .setCustomId(`${prefix}:${item.id}`)
-        .setEmoji(item.emoji)
-        .setStyle(ButtonStyle.Secondary)
-    )
-  );
+  const rows = [];
+  const chunkSize = 5;
+
+  for (let i = 0; i < items.length; i += chunkSize) {
+    const chunk = items.slice(i, i + chunkSize);
+    rows.push(
+      new ActionRowBuilder().addComponents(
+        chunk.map((item) =>
+          new ButtonBuilder()
+            .setCustomId(`${prefix}:${item.id}`)
+            .setEmoji(item.emoji)
+            .setStyle(ButtonStyle.Secondary)
+        )
+      )
+    );
+  }
+
+  return rows;
 };
 
-const buildFilmPagePayload = (selectedCategories, page) => {
-  const films = getFilmsByCategories(selectedCategories);
+const buildSortMenu = (currentSort, customId, placeholder) => {
+  const menu = new StringSelectMenuBuilder()
+    .setCustomId(customId)
+    .setPlaceholder(placeholder)
+    .addOptions(
+      Object.entries(SORT_OPTIONS).map(([value, label]) => ({
+        label,
+        value,
+        default: value === currentSort
+      }))
+    );
+
+  return new ActionRowBuilder().addComponents(menu);
+};
+
+const parseDate = (value) => {
+  if (!value) {
+    return 0;
+  }
+  const [day, month, year] = value.split('/').map(Number);
+  if (!day || !month || !year) {
+    return 0;
+  }
+  return new Date(year, month - 1, day).getTime();
+};
+
+const sortItems = (items, sortKey) => {
+  if (sortKey === 'alpha') {
+    return [...items].sort((a, b) => a.title.localeCompare(b.title, 'fr'));
+  }
+  if (sortKey === 'release') {
+    return [...items].sort((a, b) => parseDate(b.releaseDate) - parseDate(a.releaseDate));
+  }
+  return [...items].sort((a, b) => new Date(b.addedAt) - new Date(a.addedAt));
+};
+
+const buildFilmPagePayload = (selectedCategories, page, sortKey = 'recent') => {
+  const films = sortItems(getFilmsByCategories(selectedCategories), sortKey);
   const totalPages = Math.max(1, Math.ceil(films.length / FILMS_PER_PAGE));
   const safePage = Math.min(Math.max(page, 1), totalPages);
   const startIndex = (safePage - 1) * FILMS_PER_PAGE;
   const pagedFilms = films.slice(startIndex, startIndex + FILMS_PER_PAGE);
-  const selectionRow = buildItemButtonsRow(pagedFilms, 'film_item');
+  const selectionRows = buildItemButtonsRows(pagedFilms, 'film_item');
+  const sortRow = buildSortMenu(sortKey, 'film_sort', 'Trier par...');
 
   return {
     embed: buildFilmListEmbed({
       films: pagedFilms,
       page: safePage,
       totalPages,
-      selectedCategories
+      selectedCategories,
+      sortLabel: SORT_OPTIONS[sortKey]
     }),
-    components: [selectionRow, buildFilmPaginationRow(safePage, totalPages)].filter(Boolean)
+    components: [...selectionRows, sortRow, buildFilmPaginationRow(safePage, totalPages)].filter(
+      Boolean
+    )
   };
 };
 
-const buildSeriesPagePayload = (selectedCategories, page) => {
-  const series = getSeriesByCategories(selectedCategories);
+const buildSeriesPagePayload = (selectedCategories, page, sortKey = 'recent') => {
+  const series = sortItems(getSeriesByCategories(selectedCategories), sortKey);
   const totalPages = Math.max(1, Math.ceil(series.length / SERIES_PER_PAGE));
   const safePage = Math.min(Math.max(page, 1), totalPages);
   const startIndex = (safePage - 1) * SERIES_PER_PAGE;
   const pagedSeries = series.slice(startIndex, startIndex + SERIES_PER_PAGE);
-  const selectionRow = buildItemButtonsRow(pagedSeries, 'series_item');
+  const selectionRows = buildItemButtonsRows(pagedSeries, 'series_item');
+  const sortRow = buildSortMenu(sortKey, 'series_sort', 'Trier par...');
 
   return {
     embed: buildSeriesListEmbed({
       series: pagedSeries,
       page: safePage,
       totalPages,
-      selectedCategories
+      selectedCategories,
+      sortLabel: SORT_OPTIONS[sortKey]
     }),
-    components: [selectionRow, buildSeriesPaginationRow(safePage, totalPages)].filter(Boolean)
+    components: [...selectionRows, sortRow, buildSeriesPaginationRow(safePage, totalPages)].filter(
+      Boolean
+    )
   };
 };
 
-const buildAnimePagePayload = (selectedCategories, page) => {
-  const animes = getAnimesByCategories(selectedCategories);
+const buildAnimePagePayload = (selectedCategories, page, sortKey = 'recent') => {
+  const animes = sortItems(getAnimesByCategories(selectedCategories), sortKey);
   const totalPages = Math.max(1, Math.ceil(animes.length / ANIMES_PER_PAGE));
   const safePage = Math.min(Math.max(page, 1), totalPages);
   const startIndex = (safePage - 1) * ANIMES_PER_PAGE;
   const pagedAnimes = animes.slice(startIndex, startIndex + ANIMES_PER_PAGE);
-  const selectionRow = buildItemButtonsRow(pagedAnimes, 'anime_item');
+  const selectionRows = buildItemButtonsRows(pagedAnimes, 'anime_item');
+  const sortRow = buildSortMenu(sortKey, 'anime_sort', 'Trier par...');
 
   return {
     embed: buildAnimeListEmbed({
       animes: pagedAnimes,
       page: safePage,
       totalPages,
-      selectedCategories
+      selectedCategories,
+      sortLabel: SORT_OPTIONS[sortKey]
     }),
-    components: [selectionRow, buildAnimePaginationRow(safePage, totalPages)].filter(Boolean)
+    components: [...selectionRows, sortRow, buildAnimePaginationRow(safePage, totalPages)].filter(
+      Boolean
+    )
   };
 };
 
@@ -216,6 +279,15 @@ const getSelectedCategoriesFromEmbed = (embed) => {
     return [];
   }
   return field.value.split(',').map((value) => value.trim()).filter(Boolean);
+};
+
+const getSelectedSortFromEmbed = (embed) => {
+  const field = embed?.fields?.find((item) => item.name === 'Tri');
+  if (!field) {
+    return 'recent';
+  }
+  const match = Object.entries(SORT_OPTIONS).find(([, label]) => label === field.value);
+  return match ? match[0] : 'recent';
 };
 
 client.once('ready', () => {
@@ -270,8 +342,13 @@ client.on('interactionCreate', async (interaction) => {
       const embed = interaction.message.embeds[0];
       const { page } = parseFilmPageFromFooter(embed.footer?.text);
       const selectedCategories = getSelectedCategoriesFromEmbed(embed);
+      const selectedSort = getSelectedSortFromEmbed(embed);
       const nextPage = interaction.customId === 'films_page_prev' ? page - 1 : page + 1;
-      const { embed: nextEmbed, components } = buildFilmPagePayload(selectedCategories, nextPage);
+      const { embed: nextEmbed, components } = buildFilmPagePayload(
+        selectedCategories,
+        nextPage,
+        selectedSort
+      );
 
       await interaction.update({ embeds: [nextEmbed], components });
     }
@@ -280,8 +357,13 @@ client.on('interactionCreate', async (interaction) => {
       const embed = interaction.message.embeds[0];
       const { page } = parseSeriesPageFromFooter(embed.footer?.text);
       const selectedCategories = getSelectedCategoriesFromEmbed(embed);
+      const selectedSort = getSelectedSortFromEmbed(embed);
       const nextPage = interaction.customId === 'series_page_prev' ? page - 1 : page + 1;
-      const { embed: nextEmbed, components } = buildSeriesPagePayload(selectedCategories, nextPage);
+      const { embed: nextEmbed, components } = buildSeriesPagePayload(
+        selectedCategories,
+        nextPage,
+        selectedSort
+      );
 
       await interaction.update({ embeds: [nextEmbed], components });
     }
@@ -290,8 +372,13 @@ client.on('interactionCreate', async (interaction) => {
       const embed = interaction.message.embeds[0];
       const { page } = parseAnimePageFromFooter(embed.footer?.text);
       const selectedCategories = getSelectedCategoriesFromEmbed(embed);
+      const selectedSort = getSelectedSortFromEmbed(embed);
       const nextPage = interaction.customId === 'animes_page_prev' ? page - 1 : page + 1;
-      const { embed: nextEmbed, components } = buildAnimePagePayload(selectedCategories, nextPage);
+      const { embed: nextEmbed, components } = buildAnimePagePayload(
+        selectedCategories,
+        nextPage,
+        selectedSort
+      );
 
       await interaction.update({ embeds: [nextEmbed], components });
     }
@@ -347,7 +434,7 @@ client.on('interactionCreate', async (interaction) => {
 
   if (interaction.isStringSelectMenu() && interaction.customId === 'film_categories') {
     const selectedCategories = interaction.values;
-    const { embed, components } = buildFilmPagePayload(selectedCategories, 1);
+    const { embed, components } = buildFilmPagePayload(selectedCategories, 1, 'recent');
 
     await interaction.update({
       content: null,
@@ -358,7 +445,7 @@ client.on('interactionCreate', async (interaction) => {
 
   if (interaction.isStringSelectMenu() && interaction.customId === 'series_categories') {
     const selectedCategories = interaction.values;
-    const { embed, components } = buildSeriesPagePayload(selectedCategories, 1);
+    const { embed, components } = buildSeriesPagePayload(selectedCategories, 1, 'recent');
 
     await interaction.update({
       content: null,
@@ -369,13 +456,52 @@ client.on('interactionCreate', async (interaction) => {
 
   if (interaction.isStringSelectMenu() && interaction.customId === 'anime_categories') {
     const selectedCategories = interaction.values;
-    const { embed, components } = buildAnimePagePayload(selectedCategories, 1);
+    const { embed, components } = buildAnimePagePayload(selectedCategories, 1, 'recent');
 
     await interaction.update({
       content: null,
       embeds: [embed],
       components
     });
+  }
+
+  if (interaction.isStringSelectMenu() && interaction.customId === 'film_sort') {
+    const selectedSort = interaction.values[0];
+    const embed = interaction.message.embeds[0];
+    const selectedCategories = getSelectedCategoriesFromEmbed(embed);
+    const { embed: nextEmbed, components } = buildFilmPagePayload(
+      selectedCategories,
+      1,
+      selectedSort
+    );
+
+    await interaction.update({ embeds: [nextEmbed], components });
+  }
+
+  if (interaction.isStringSelectMenu() && interaction.customId === 'series_sort') {
+    const selectedSort = interaction.values[0];
+    const embed = interaction.message.embeds[0];
+    const selectedCategories = getSelectedCategoriesFromEmbed(embed);
+    const { embed: nextEmbed, components } = buildSeriesPagePayload(
+      selectedCategories,
+      1,
+      selectedSort
+    );
+
+    await interaction.update({ embeds: [nextEmbed], components });
+  }
+
+  if (interaction.isStringSelectMenu() && interaction.customId === 'anime_sort') {
+    const selectedSort = interaction.values[0];
+    const embed = interaction.message.embeds[0];
+    const selectedCategories = getSelectedCategoriesFromEmbed(embed);
+    const { embed: nextEmbed, components } = buildAnimePagePayload(
+      selectedCategories,
+      1,
+      selectedSort
+    );
+
+    await interaction.update({ embeds: [nextEmbed], components });
   }
 
 });

@@ -6,7 +6,8 @@ export const buildAnimeListEmbed = ({
   animes,
   page,
   totalPages,
-  selectedCategories
+  selectedCategories,
+  sortLabel
 }) => {
   const description = animes.length
     ? animes.map((item) => `${item.emoji} **${item.title}**`).join('\n')
@@ -15,10 +16,16 @@ export const buildAnimeListEmbed = ({
   return new EmbedBuilder()
     .setTitle('Catalogue Animés')
     .setDescription(description)
-    .addFields({
-      name: 'Catégories',
-      value: selectedCategories.length ? selectedCategories.join(', ') : 'Toutes'
-    })
+    .addFields(
+      {
+        name: 'Catégories',
+        value: selectedCategories.length ? selectedCategories.join(', ') : 'Toutes'
+      },
+      {
+        name: 'Tri',
+        value: sortLabel
+      }
+    )
     .setColor(0x2b2d31)
     .setFooter({ text: pageFooter(page, totalPages) });
 };

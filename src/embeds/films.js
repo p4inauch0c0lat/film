@@ -6,7 +6,8 @@ export const buildFilmListEmbed = ({
   films,
   page,
   totalPages,
-  selectedCategories
+  selectedCategories,
+  sortLabel
 }) => {
   const description = films.length
     ? films.map((film) => `${film.emoji} **${film.title}**`).join('\n')
@@ -15,10 +16,16 @@ export const buildFilmListEmbed = ({
   return new EmbedBuilder()
     .setTitle('Catalogue Films')
     .setDescription(description)
-    .addFields({
-      name: 'Catégories',
-      value: selectedCategories.length ? selectedCategories.join(', ') : 'Toutes'
-    })
+    .addFields(
+      {
+        name: 'Catégories',
+        value: selectedCategories.length ? selectedCategories.join(', ') : 'Toutes'
+      },
+      {
+        name: 'Tri',
+        value: sortLabel
+      }
+    )
     .setColor(0x2b2d31)
     .setFooter({ text: pageFooter(page, totalPages) });
 };

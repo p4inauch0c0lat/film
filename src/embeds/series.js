@@ -6,7 +6,8 @@ export const buildSeriesListEmbed = ({
   series,
   page,
   totalPages,
-  selectedCategories
+  selectedCategories,
+  sortLabel
 }) => {
   const description = series.length
     ? series.map((item) => `${item.emoji} **${item.title}**`).join('\n')
@@ -15,10 +16,16 @@ export const buildSeriesListEmbed = ({
   return new EmbedBuilder()
     .setTitle('Catalogue Séries')
     .setDescription(description)
-    .addFields({
-      name: 'Catégories',
-      value: selectedCategories.length ? selectedCategories.join(', ') : 'Toutes'
-    })
+    .addFields(
+      {
+        name: 'Catégories',
+        value: selectedCategories.length ? selectedCategories.join(', ') : 'Toutes'
+      },
+      {
+        name: 'Tri',
+        value: sortLabel
+      }
+    )
     .setColor(0x2b2d31)
     .setFooter({ text: pageFooter(page, totalPages) });
 };
