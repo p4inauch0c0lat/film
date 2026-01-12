@@ -7,8 +7,9 @@ import {
   StringSelectMenuBuilder
 } from 'discord.js';
 import { buildCatalogueEmbed } from './embeds/catalogue.js';
+import { buildFilmDetailEmbed } from './embeds/filmDetails.js';
 import { buildFilmListEmbed, parsePageFromFooter } from './embeds/films.js';
-import { filmCategories, getFilmsByCategories } from './data/films.js';
+import { filmCategories, getFilmById, getFilmsByCategories } from './data/films.js';
 import { getCatalogueStats } from './data/catalogue.js';
 
 const token = process.env.DISCORD_TOKEN;
@@ -61,12 +62,32 @@ const buildFilmPaginationRow = (page, totalPages) =>
       .setDisabled(page >= totalPages)
   );
 
+const buildFilmSelectMenu = (films) => {
+  if (!films.length) {
+    return null;
+  }
+
+  const menu = new StringSelectMenuBuilder()
+    .setCustomId('film_select')
+    .setPlaceholder('Clique sur un film pour voir les détails')
+    .addOptions(
+      films.map((film) => ({
+        label: film.title,
+        value: film.id,
+        emoji: film.emoji
+      }))
+    );
+
+  return new ActionRowBuilder().addComponents(menu);
+};
+
 const buildFilmPagePayload = (selectedCategories, page) => {
   const films = getFilmsByCategories(selectedCategories);
   const totalPages = Math.max(1, Math.ceil(films.length / FILMS_PER_PAGE));
   const safePage = Math.min(Math.max(page, 1), totalPages);
   const startIndex = (safePage - 1) * FILMS_PER_PAGE;
   const pagedFilms = films.slice(startIndex, startIndex + FILMS_PER_PAGE);
+  const selectionRow = buildFilmSelectMenu(pagedFilms);
 
   return {
     embed: buildFilmListEmbed({
@@ -75,7 +96,7 @@ const buildFilmPagePayload = (selectedCategories, page) => {
       totalPages,
       selectedCategories
     }),
-    components: [buildFilmPaginationRow(safePage, totalPages)]
+    components: [selectionRow, buildFilmPaginationRow(safePage, totalPages)].filter(Boolean)
   };
 };
 
@@ -137,6 +158,22 @@ client.on('interactionCreate', async (interaction) => {
       embeds: [embed],
       components
     });
+  }
+
+  if (interaction.isStringSelectMenu() && interaction.customId === 'film_select') {
+    const selectedFilmId = interaction.values[0];
+    const film = getFilmById(selectedFilmId);
+
+    if (!film) {
+      await interaction.reply({
+        content: 'Impossible de trouver ce film.',
+        ephemeral: true
+      });
+      return;
+    }
+
+    const detailEmbed = buildFilmDetailEmbed(film);
+    await interaction.reply({ embeds: [detailEmbed] });
   }
 });
 
