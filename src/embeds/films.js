@@ -10,7 +10,7 @@ export const buildFilmListEmbed = ({
   sortLabel
 }) => {
   const description = films.length
-    ? films.map((film) => `${film.emoji} **${film.title}**`).join('\n')
+    ? films.map((film) => `${film.displayEmoji ?? film.emoji} **${film.title}**`).join('\n')
     : 'Aucun film ne correspond à ces catégories.';
 
   return new EmbedBuilder()

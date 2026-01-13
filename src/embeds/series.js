@@ -10,7 +10,7 @@ export const buildSeriesListEmbed = ({
   sortLabel
 }) => {
   const description = series.length
-    ? series.map((item) => `${item.emoji} **${item.title}**`).join('\n')
+    ? series.map((item) => `${item.displayEmoji ?? item.emoji} **${item.title}**`).join('\n')
     : 'Aucune série ne correspond à ces catégories.';
 
   return new EmbedBuilder()

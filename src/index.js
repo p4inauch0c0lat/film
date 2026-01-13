@@ -38,6 +38,7 @@ const SORT_OPTIONS = {
   release: 'Date de sortie'
 };
 const ADD_COMMAND = '!ajouter';
+const SELECTOR_EMOJIS = ['1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', '6️⃣', '7️⃣', '8️⃣', '9️⃣', '🔟'];
 
 const buildCatalogueButtons = () =>
   new ActionRowBuilder().addComponents(
@@ -162,7 +163,7 @@ const buildItemButtonsRows = (items, prefix) => {
         chunk.map((item) =>
           new ButtonBuilder()
             .setCustomId(`${prefix}:${item.id}`)
-            .setEmoji(item.emoji)
+            .setEmoji(item.displayEmoji ?? item.emoji)
             .setStyle(ButtonStyle.Secondary)
         )
       )
@@ -171,6 +172,12 @@ const buildItemButtonsRows = (items, prefix) => {
 
   return rows;
 };
+
+const withSelectorEmojis = (items) =>
+  items.map((item, index) => ({
+    ...item,
+    displayEmoji: SELECTOR_EMOJIS[index] ?? '🔹'
+  }));
 
 const buildSortMenu = (currentSort, customId, placeholder) => {
   const menu = new StringSelectMenuBuilder()
@@ -221,7 +228,7 @@ const buildFilmPagePayload = (selectedCategories, page, sortKey = 'recent') => {
   const totalPages = Math.max(1, Math.ceil(films.length / FILMS_PER_PAGE));
   const safePage = Math.min(Math.max(page, 1), totalPages);
   const startIndex = (safePage - 1) * FILMS_PER_PAGE;
-  const pagedFilms = films.slice(startIndex, startIndex + FILMS_PER_PAGE);
+  const pagedFilms = withSelectorEmojis(films.slice(startIndex, startIndex + FILMS_PER_PAGE));
   const selectionRows = buildItemButtonsRows(pagedFilms, 'film_item');
   const sortRow = buildSortMenu(sortKey, 'film_sort', 'Trier par...');
 
@@ -244,7 +251,7 @@ const buildSeriesPagePayload = (selectedCategories, page, sortKey = 'recent') =>
   const totalPages = Math.max(1, Math.ceil(series.length / SERIES_PER_PAGE));
   const safePage = Math.min(Math.max(page, 1), totalPages);
   const startIndex = (safePage - 1) * SERIES_PER_PAGE;
-  const pagedSeries = series.slice(startIndex, startIndex + SERIES_PER_PAGE);
+  const pagedSeries = withSelectorEmojis(series.slice(startIndex, startIndex + SERIES_PER_PAGE));
   const selectionRows = buildItemButtonsRows(pagedSeries, 'series_item');
   const sortRow = buildSortMenu(sortKey, 'series_sort', 'Trier par...');
 
@@ -267,7 +274,7 @@ const buildAnimePagePayload = (selectedCategories, page, sortKey = 'recent') => 
   const totalPages = Math.max(1, Math.ceil(animes.length / ANIMES_PER_PAGE));
   const safePage = Math.min(Math.max(page, 1), totalPages);
   const startIndex = (safePage - 1) * ANIMES_PER_PAGE;
-  const pagedAnimes = animes.slice(startIndex, startIndex + ANIMES_PER_PAGE);
+  const pagedAnimes = withSelectorEmojis(animes.slice(startIndex, startIndex + ANIMES_PER_PAGE));
   const selectionRows = buildItemButtonsRows(pagedAnimes, 'anime_item');
   const sortRow = buildSortMenu(sortKey, 'anime_sort', 'Trier par...');
 

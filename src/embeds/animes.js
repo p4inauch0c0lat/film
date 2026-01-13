@@ -10,7 +10,7 @@ export const buildAnimeListEmbed = ({
   sortLabel
 }) => {
   const description = animes.length
-    ? animes.map((item) => `${item.emoji} **${item.title}**`).join('\n')
+    ? animes.map((item) => `${item.displayEmoji ?? item.emoji} **${item.title}**`).join('\n')
     : 'Aucun anime ne correspond à ces catégories.';
 
   return new EmbedBuilder()
