@@ -109,6 +109,11 @@ const buildAnimeCategoryMenu = () => {
 const buildFilmPaginationRow = (page, totalPages) =>
   new ActionRowBuilder().addComponents(
     new ButtonBuilder()
+      .setCustomId('films_page_first')
+      .setEmoji('⏮️')
+      .setStyle(ButtonStyle.Secondary)
+      .setDisabled(page <= 1),
+    new ButtonBuilder()
       .setCustomId('films_page_prev')
       .setEmoji('⬅️')
       .setStyle(ButtonStyle.Secondary)
@@ -117,11 +122,21 @@ const buildFilmPaginationRow = (page, totalPages) =>
       .setCustomId('films_page_next')
       .setEmoji('➡️')
       .setStyle(ButtonStyle.Secondary)
+      .setDisabled(page >= totalPages),
+    new ButtonBuilder()
+      .setCustomId('films_page_last')
+      .setEmoji('⏭️')
+      .setStyle(ButtonStyle.Secondary)
       .setDisabled(page >= totalPages)
   );
 
 const buildSeriesPaginationRow = (page, totalPages) =>
   new ActionRowBuilder().addComponents(
+    new ButtonBuilder()
+      .setCustomId('series_page_first')
+      .setEmoji('⏮️')
+      .setStyle(ButtonStyle.Secondary)
+      .setDisabled(page <= 1),
     new ButtonBuilder()
       .setCustomId('series_page_prev')
       .setEmoji('⬅️')
@@ -131,11 +146,21 @@ const buildSeriesPaginationRow = (page, totalPages) =>
       .setCustomId('series_page_next')
       .setEmoji('➡️')
       .setStyle(ButtonStyle.Secondary)
+      .setDisabled(page >= totalPages),
+    new ButtonBuilder()
+      .setCustomId('series_page_last')
+      .setEmoji('⏭️')
+      .setStyle(ButtonStyle.Secondary)
       .setDisabled(page >= totalPages)
   );
 
 const buildAnimePaginationRow = (page, totalPages) =>
   new ActionRowBuilder().addComponents(
+    new ButtonBuilder()
+      .setCustomId('animes_page_first')
+      .setEmoji('⏮️')
+      .setStyle(ButtonStyle.Secondary)
+      .setDisabled(page <= 1),
     new ButtonBuilder()
       .setCustomId('animes_page_prev')
       .setEmoji('⬅️')
@@ -144,6 +169,11 @@ const buildAnimePaginationRow = (page, totalPages) =>
     new ButtonBuilder()
       .setCustomId('animes_page_next')
       .setEmoji('➡️')
+      .setStyle(ButtonStyle.Secondary)
+      .setDisabled(page >= totalPages),
+    new ButtonBuilder()
+      .setCustomId('animes_page_last')
+      .setEmoji('⏭️')
       .setStyle(ButtonStyle.Secondary)
       .setDisabled(page >= totalPages)
   );
@@ -589,12 +619,24 @@ client.on('interactionCreate', async (interaction) => {
       return;
     }
 
-    if (interaction.customId === 'films_page_prev' || interaction.customId === 'films_page_next') {
+    if (
+      interaction.customId === 'films_page_prev' ||
+      interaction.customId === 'films_page_next' ||
+      interaction.customId === 'films_page_first' ||
+      interaction.customId === 'films_page_last'
+    ) {
       const embed = interaction.message.embeds[0];
       const { page } = parseFilmPageFromFooter(embed.footer?.text);
       const selectedCategories = getSelectedCategoriesFromEmbed(embed);
       const selectedSort = getSelectedSortFromEmbed(embed);
-      const nextPage = interaction.customId === 'films_page_prev' ? page - 1 : page + 1;
+      const nextPage =
+        interaction.customId === 'films_page_prev'
+          ? page - 1
+          : interaction.customId === 'films_page_next'
+            ? page + 1
+            : interaction.customId === 'films_page_first'
+              ? 1
+              : Number.POSITIVE_INFINITY;
       const { embed: nextEmbed, components } = buildFilmPagePayload(
         selectedCategories,
         nextPage,
@@ -604,12 +646,24 @@ client.on('interactionCreate', async (interaction) => {
       await interaction.update({ embeds: [nextEmbed], components });
     }
 
-    if (interaction.customId === 'series_page_prev' || interaction.customId === 'series_page_next') {
+    if (
+      interaction.customId === 'series_page_prev' ||
+      interaction.customId === 'series_page_next' ||
+      interaction.customId === 'series_page_first' ||
+      interaction.customId === 'series_page_last'
+    ) {
       const embed = interaction.message.embeds[0];
       const { page } = parseSeriesPageFromFooter(embed.footer?.text);
       const selectedCategories = getSelectedCategoriesFromEmbed(embed);
       const selectedSort = getSelectedSortFromEmbed(embed);
-      const nextPage = interaction.customId === 'series_page_prev' ? page - 1 : page + 1;
+      const nextPage =
+        interaction.customId === 'series_page_prev'
+          ? page - 1
+          : interaction.customId === 'series_page_next'
+            ? page + 1
+            : interaction.customId === 'series_page_first'
+              ? 1
+              : Number.POSITIVE_INFINITY;
       const { embed: nextEmbed, components } = buildSeriesPagePayload(
         selectedCategories,
         nextPage,
@@ -619,12 +673,24 @@ client.on('interactionCreate', async (interaction) => {
       await interaction.update({ embeds: [nextEmbed], components });
     }
 
-    if (interaction.customId === 'animes_page_prev' || interaction.customId === 'animes_page_next') {
+    if (
+      interaction.customId === 'animes_page_prev' ||
+      interaction.customId === 'animes_page_next' ||
+      interaction.customId === 'animes_page_first' ||
+      interaction.customId === 'animes_page_last'
+    ) {
       const embed = interaction.message.embeds[0];
       const { page } = parseAnimePageFromFooter(embed.footer?.text);
       const selectedCategories = getSelectedCategoriesFromEmbed(embed);
       const selectedSort = getSelectedSortFromEmbed(embed);
-      const nextPage = interaction.customId === 'animes_page_prev' ? page - 1 : page + 1;
+      const nextPage =
+        interaction.customId === 'animes_page_prev'
+          ? page - 1
+          : interaction.customId === 'animes_page_next'
+            ? page + 1
+            : interaction.customId === 'animes_page_first'
+              ? 1
+              : Number.POSITIVE_INFINITY;
       const { embed: nextEmbed, components } = buildAnimePagePayload(
         selectedCategories,
         nextPage,
