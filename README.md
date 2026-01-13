@@ -18,6 +18,7 @@ npm start
 - `EPISODES_COUNT`
 - `TOTAL_LINKS`
 - `STATUS_URL`
+- `DISCORD_OWNER_IDS` (optionnel, liste d'IDs séparés par des virgules pour limiter les commandes d'ajout)
 
 ## Utilisation
 

@@ -17,6 +17,9 @@ import { addSeries, seriesCategories, getSeriesById, getSeriesByCategories } fro
 import { getCatalogueStats } from './data/catalogue.js';
 
 const token = process.env.DISCORD_TOKEN;
+const ownerIds = process.env.DISCORD_OWNER_IDS
+  ? process.env.DISCORD_OWNER_IDS.split(',').map((id) => id.trim()).filter(Boolean)
+  : [];
 
 if (!token) {
   throw new Error('DISCORD_TOKEN is required to start the bot.');
@@ -390,6 +393,10 @@ const parsePositiveInt = (input, label) => {
 };
 
 const handleInteractiveAdd = async (message) => {
+  if (!ownerIds.includes(message.author.id)) {
+    await message.channel.send('⛔ Cette commande est réservée aux owners.');
+    return;
+  }
   await message.channel.send(
     'Commande ajout interactive démarrée. Tape `annuler` à tout moment pour arrêter.'
   );
